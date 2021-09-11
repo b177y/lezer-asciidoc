@@ -1,0 +1,51 @@
+= lezer-asciidoc
+
+This is an incremental Asciidoc (link:https://commonmark.org/[CommonMark]
+with support for extension) parser that integrates well with the
+link:https://lezer.codemirror.net/[Lezer] parser system. It does not in
+fact use the Lezer runtime (that runs LR parsers, and Asciidoc can't
+really be parsed that way), but it produces Lezer-style compact syntax
+trees and consumes fragments of such trees for its incremental
+parsing.
+
+NOTE: This is only a parser and NOT a converter.
+
+This language parser aims to conform to the
+link:https://docs.asciidoctor.org/asciidoc/latest/[Asciidoctor Language Documentation].
+
+== Uses
+
+The current use of `lezer-asciidoc` is in
+link:https://github.com/b177y/codemirror-lang-asciidoc[codemirror-lang-asciidoc]
+to provide a custom language for editing asciidoc files with codemirror.
+
+A possible future use is using the output of a file parsed with
+lezer-asciidoc (a link:https://lezer.codemirror.net/docs/ref[Tree object])
+to create HTML output.
+This would allow simple Asciidoc converters to use javascript/typescript
+rather than the cross-compiled Ruby Asciidoctor code.
+
+
+== ToDo
+
+NOTE: This aims to cover enough for basic syntax highlighting
+but will not be enough for a converter yet.
+
+* [*] Headings
+* [ ] Document attributes: `:imagesdir: ./assets/images`
+* [ ] Bold: `bold *word* or some**char**acters`
+* [ ] Italic: `italic _word_ or some**char**acters`
+* [ ] Inline code: using \`inline` code
+* [ ] Highlighting `lorum #ipsum#`
+* [ ] subscript + superscript
+* [ ] lists
+** [ ] bullet lists
+** [ ] numbered lists
+** [ ] checklists
+* links (http,https,ftp,irc,mailto)
+* References
+* Footnotes
+* Images
+* blockquotes
+* Tables
+* includes

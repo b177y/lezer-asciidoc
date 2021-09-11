@@ -1,5 +1,5 @@
 {
-  "name": "@lezer/markdown",
+  "name": "@b177y/lezer-asciidoc",
   "version": "0.15.0",
   "description": "Incremental Markdown parser that consumes and emits Lezer trees",
   "main": "dist/index.cjs",
