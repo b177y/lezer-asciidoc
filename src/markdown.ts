@@ -55,7 +55,6 @@ export enum Type {
   ATXHeading6,
   SetextHeading1,
   SetextHeading2,
-  HTMLBlock,
   LinkReference,
   Paragraph,
   CommentBlock,
@@ -70,7 +69,6 @@ export enum Type {
   Link,
   Image,
   InlineCode,
-  HTMLTag,
   Comment,
   ProcessingInstruction,
   URL,
@@ -295,7 +293,7 @@ function isOrderedList(line: Line, cx: BlockContext, breaking: boolean) {
 }
 
 function isAtxHeading(line: Line) {
-  if (line.next != 61 /* '#' */) return -1
+  if (line.next != 61 /* '=' */) return -1
   let pos = line.pos + 1
   while (pos < line.text.length && line.text.charCodeAt(pos) == 61) pos++
   if (pos < line.text.length && line.text.charCodeAt(pos) != 32) return -1
@@ -310,25 +308,6 @@ function isSetextUnderline(line: Line) {
   let end = pos
   while (pos < line.text.length && space(line.text.charCodeAt(pos))) pos++
   return pos == line.text.length ? end : -1
-}
-
-const EmptyLine = /^[ \t]*$/, CommentEnd = /-->/, ProcessingEnd = /\?>/
-const HTMLBlockStyle = [
-  [/^<(?:script|pre|style)(?:\s|>|$)/i, /<\/(?:script|pre|style)>/i],
-  [/^\s*<!--/, CommentEnd],
-  [/^\s*<\?/, ProcessingEnd],
-  [/^\s*<![A-Z]/, />/],
-  [/^\s*<!\[CDATA\[/, /\]\]>/],
-  [/^\s*<\/?(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?:\s|\/?>|$)/i, EmptyLine],
-  [/^\s*(?:<\/[a-z][\w-]*\s*>|<[a-z][\w-]*(\s+[a-z:_][\w-.]*(?:\s*=\s*(?:[^\s"'=<>`]+|'[^']*'|"[^"]*"))?)*\s*>)\s*$/i, EmptyLine]
-]
-
-function isHTMLBlock(line: Line, _cx: BlockContext, breaking: boolean) {
-  if (line.next != 60 /* '<' */) return -1
-  let rest = line.text.slice(line.pos)
-  for (let i = 0, e = HTMLBlockStyle.length - (breaking ? 1 : 0); i < e; i++)
-    if (HTMLBlockStyle[i][0].test(rest)) return i
-  return -1
 }
 
 function getListIndent(line: Line, pos: number) {
@@ -487,28 +466,12 @@ const DefaultBlockParsers: {[name: string]: ((cx: BlockContext, line: Line) => B
     return true
   },
 
-  HTMLBlock(cx, line) {
-    let type = isHTMLBlock(line, cx, false)
-    if (type < 0) return false
-    let from = cx.lineStart + line.pos, end = HTMLBlockStyle[type][1]
-    let marks: Element[] = [], trailing = end != EmptyLine
-    while (!end.test(line.text) && cx.nextLine()) {
-      if (line.depth < cx.stack.length) { trailing = false; break }
-      for (let m of line.markers) marks.push(m)
-    }
-    if (trailing) cx.nextLine()
-    let nodeType = end == CommentEnd ? Type.CommentBlock : end == ProcessingEnd ? Type.ProcessingInstructionBlock : Type.HTMLBlock
-    let to = cx.prevLineEnd()
-    cx.addNode(cx.buffer.writeElements(marks, -from).finish(nodeType, to - from), from)
-    return true
-  },
-
   SetextHeading: undefined // Specifies relative precedence for block-continue function
 }
 
 const enum RefStage { Failed = -1, Start, Label, Link, Title }
 
-// This implements a state machine that incrementally parses link references. At each
+// Th=s implements a state machine that incrementally parses link references. At each
 // next line, it looks ahead to see if the line continues the reference or not. If it
 // doesn't and a valid link is available ending before that line, it finishes that.
 // Similarly, on `finish` (when the leaf is terminated by external circumstances), it
@@ -623,7 +586,6 @@ const DefaultEndLeaf: readonly ((cx: BlockContext, line: Line) => boolean)[] = [
   (p, line) => isBulletList(line, p, true) >= 0,
   (p, line) => isOrderedList(line, p, true) >= 0,
   (p, line) => isHorizontalRule(line, p, true) >= 0,
-  (p, line) => isHTMLBlock(line, p, true) >= 0
 ]
 
 /// Block-level parsing functions get access to this context object.
@@ -950,7 +912,7 @@ export interface InlineParser {
   parse(cx: InlineContext, next: number, pos: number): number,
   /// When given, this parser will be installed directly before the
   /// parser with the given name. The default configuration defines
-  /// inline parsers with names Escape, Entity, InlineCode, HTMLTag,
+  /// inline parsers with names Escape, Entity, InlineCode,
   /// Emphasis, HardBreak, Link, and Image. When no `before` or
   /// `after` property is given, the parser is added to the end of the
   /// list.
@@ -968,8 +930,8 @@ export interface InlineParser {
 ///   that [starts](#BlockContext.startComposite) a composite block
 ///   and returns null when it recognizes its syntax.
 ///
-/// - Eager leaf block parsers, used for things like code or HTML
-///   blocks. These can unambiguously recognize their content from its
+/// - Eager leaf block parsers, used for things like code blocks.
+///   These can unambiguously recognize their content from its
 ///   first line. They define a [`parse`](#BlockParser.parse) method
 ///   that, if it recognizes the construct,
 ///   [moves](#BlockContext.nextLine) the current line forward to the
@@ -1009,7 +971,7 @@ export interface BlockParser {
   /// block parser with the given name. The default configuration
   /// defines block parsers with names LinkReference, IndentedCode,
   /// FencedCode, Blockquote, HorizontalRule, BulletList, OrderedList,
-  /// ATXHeading, HTMLBlock, and SetextHeading.
+  /// ATXHeading, and SetextHeading.
   before?: string,
   /// When given, the parser will be installed directly _after_ the
   /// parser with the given name.
@@ -1383,20 +1345,6 @@ const DefaultInline: {[name: string]: (cx: InlineContext, next: number, pos: num
       }
     }
     return -1
-  },
-
-  HTMLTag(cx, next, start) { // or URL
-    if (next != 60 /* '<' */ || start == cx.end - 1) return -1
-    let after = cx.slice(start + 1, cx.end)
-    let url = /^(?:[a-z][-\w+.]+:[^\s>]+|[a-z\d.!#$%&'*+/=?^_`{|}~-]+@[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?(?:\.[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?)*)>/i.exec(after)
-    if (url) return cx.append(elt(Type.URL, start, start + 1 + url[0].length))
-    let comment = /^!--[^>](?:-[^-]|[^-])*?-->/i.exec(after)
-    if (comment) return cx.append(elt(Type.Comment, start, start + 1 + comment[0].length))
-    let procInst = /^\?[^]*?\?>/.exec(after)
-    if (procInst) return cx.append(elt(Type.ProcessingInstruction, start, start + 1 + procInst[0].length))
-    let m = /^(?:![A-Z][^]*?>|!\[CDATA\[[^]*?\]\]>|\/\s*[a-zA-Z][\w-]*\s*>|\s*[a-zA-Z][\w-]*(\s+[a-zA-Z:_][\w-.:]*(?:\s*=\s*(?:[^\s"'=<>`]+|'[^']*'|"[^"]*"))?)*\s*(\/\s*)?>)/.exec(after)
-    if (!m) return -1
-    return cx.append(elt(Type.HTMLTag, start, start + 1 + m[0].length))
   },
 
   Emphasis(cx, next, start) {

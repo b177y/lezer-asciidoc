@@ -12,8 +12,7 @@ function leftOverSpace(node: SyntaxNode, from: number, to: number) {
   return ranges
 }
 
-/// Create a Markdown extension to enable nested parsing on code
-/// blocks and/or embedded HTML.
+/// Create a Markdown extension to enable nested parsing on code blocks.
 export function parseCode(config: {
   /// When provided, this will be used to parse the content of code
   /// blocks. `info` is the string after the opening ` ``` ` marker,
@@ -22,10 +21,8 @@ export function parseCode(config: {
   /// code, it should return a function that can construct the
   /// [parse](https://lezer.codemirror.net/docs/ref/#common.PartialParse).
   codeParser?: (info: string) => null | Parser
-  /// The parser used to parse HTML tags (both block and inline).
-  htmlParser?: Parser,
 }): MarkdownExtension {
-  let {codeParser, htmlParser} = config
+  let {codeParser} = config
   let wrap = parseMixed((node: TreeCursor, input: Input) => {
     let id = node.type.id
     if (codeParser && (id == Type.CodeBlock || id == Type.FencedCode)) {
@@ -37,8 +34,6 @@ export function parseCode(config: {
       let parser = codeParser(info)
       if (parser)
         return {parser, overlay: node => node.type.id == Type.CodeText}
-    } else if (htmlParser && (id == Type.HTMLBlock || id == Type.HTMLTag)) {
-      return {parser: htmlParser, overlay: leftOverSpace(node.node, node.from, node.to)}
     }
     return null
   })
