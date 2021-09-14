@@ -1,5 +1,5 @@
 import {TreeCursor, SyntaxNode, Parser, Input, parseMixed} from "@lezer/common"
-import {Type, MarkdownExtension} from "./markdown"
+import {Type, AsciidocExtension} from "./asciidoc"
 
 function leftOverSpace(node: SyntaxNode, from: number, to: number) {
   let ranges = []
@@ -12,7 +12,7 @@ function leftOverSpace(node: SyntaxNode, from: number, to: number) {
   return ranges
 }
 
-/// Create a Markdown extension to enable nested parsing on code blocks.
+/// Create a Asciidoc extension to enable nested parsing on code blocks.
 export function parseCode(config: {
   /// When provided, this will be used to parse the content of code
   /// blocks. `info` is the string after the opening ` ``` ` marker,
@@ -21,7 +21,7 @@ export function parseCode(config: {
   /// code, it should return a function that can construct the
   /// [parse](https://lezer.codemirror.net/docs/ref/#common.PartialParse).
   codeParser?: (info: string) => null | Parser
-}): MarkdownExtension {
+}): AsciidocExtension {
   let {codeParser} = config
   let wrap = parseMixed((node: TreeCursor, input: Input) => {
     let id = node.type.id

@@ -614,7 +614,7 @@ export class BlockContext implements PartialParse {
   /// @internal
   constructor(
     /// The parser configuration used.
-    readonly parser: MarkdownParser,
+    readonly parser: AsciidocParser,
     /// @internal
     readonly input: Input,
     fragments: readonly TreeFragment[],
@@ -881,7 +881,7 @@ function injectGaps(
   return new Tree(tree.type, children, positions, tree.to + offset - start, tree.tree ? tree.tree.propValues : undefined)
 }
 
-/// Used in the [configuration](#MarkdownConfig.defineNodes) to define
+/// Used in the [configuration](#AsciidocConfig.defineNodes) to define
 /// new [syntax node
 /// types](https://lezer.codemirror.net/docs/ref/#common.NodeType).
 export interface NodeSpec {
@@ -998,8 +998,8 @@ export interface LeafBlockParser {
 }
 
 /// Objects of this type are used to
-/// [configure](#MarkdownParser.configure) the Markdown parser.
-export interface MarkdownConfig {
+/// [configure](#AsciidocParser.configure) the Markdown parser.
+export interface AsciidocConfig {
   /// Node props to add to the parser's node set.
   props?: readonly NodePropSource[],
   /// Define new [node types](#NodeSpec) for use in parser extensions.
@@ -1017,12 +1017,12 @@ export interface MarkdownConfig {
 
 /// To make it possible to group extensions together into bigger
 /// extensions (such as the [Github-flavored Markdown](#GFM)
-/// extension), [reconfiguration](#MarkdownParser.configure) accepts
-/// nested arrays of [config](#MarkdownConfig) objects.
-export type MarkdownExtension = MarkdownConfig | readonly MarkdownExtension[]
+/// extension), [reconfiguration](#AsciidocParser.configure) accepts
+/// nested arrays of [config](#AsciidocConfig) objects.
+export type AsciidocExtension = AsciidocConfig | readonly AsciidocExtension[]
 
 /// A Markdown parser configuration.
-export class MarkdownParser extends Parser {
+export class AsciidocParser extends Parser {
   /// @internal
   nodeTypes: {[name: string]: number} = Object.create(null)
 
@@ -1059,7 +1059,7 @@ export class MarkdownParser extends Parser {
   }
 
   /// Reconfigure the parser.
-  configure(spec: MarkdownExtension) {
+  configure(spec: AsciidocExtension) {
     let config = resolveConfig(spec)
     if (!config) return this
     let {nodeSet, skipContextMarkup} = this
@@ -1131,7 +1131,7 @@ export class MarkdownParser extends Parser {
 
     if (config.wrap) wrappers = wrappers.concat(config.wrap)
 
-    return new MarkdownParser(nodeSet,
+    return new AsciidocParser(nodeSet,
                               blockParsers, leafBlockParsers, blockNames,
                               endLeafBlock, skipContextMarkup,
                               inlineParsers, inlineNames, wrappers)
@@ -1165,8 +1165,8 @@ function nonEmpty<T>(a: undefined | readonly T[]): a is readonly T[] {
   return a != null && a.length > 0
 }
 
-function resolveConfig(spec: MarkdownExtension): MarkdownConfig | null {
-  if (!Array.isArray(spec)) return spec as MarkdownConfig
+function resolveConfig(spec: AsciidocExtension): AsciidocConfig | null {
+  if (!Array.isArray(spec)) return spec as AsciidocConfig
   if (spec.length == 0) return null
   let conf = resolveConfig(spec[0])
   if (spec.length == 1) return conf
@@ -1510,7 +1510,7 @@ export class InlineContext {
   /// @internal
   constructor(
     /// The parser that is being used.
-    readonly parser: MarkdownParser,
+    readonly parser: AsciidocParser,
     /// The text of this inline section.
     readonly text: string,
     /// The starting offset of the section in the document.
@@ -1738,7 +1738,7 @@ class FragmentCursor {
 }
 
 /// The default CommonMark parser.
-export const parser = new MarkdownParser(
+export const parser = new AsciidocParser(
   new NodeSet(nodeTypes),
   Object.keys(DefaultBlockParsers).map(n => DefaultBlockParsers[n]),
   Object.keys(DefaultBlockParsers).map(n => DefaultLeafBlocks[n]),
